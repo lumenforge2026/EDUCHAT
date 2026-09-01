@@ -1,0 +1,1558 @@
+<!doctype html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MDM Test Lab</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --surface-1: #fcfcfb;
+      --page-plane: #f9f9f7;
+      --text-primary: #0b0b0b;
+      --text-secondary: #52514e;
+      --muted: #898781;
+      --gridline: #e1e0d9;
+      --baseline: #c3c2b7;
+      --border: rgba(11, 11, 11, 0.10);
+      --card-bg: #ffffff;
+
+      --series-1: #2a78d6;
+      --series-2: #eb6834;
+      --series-3: #1baf7a;
+      --series-4: #eda100;
+      --series-5: #e87ba4;
+      --series-6: #008300;
+      --series-7: #4a3aa7;
+      --series-8: #e34948;
+
+      --status-good: #0ca30c;
+      --status-warning: #fab219;
+      --status-critical: #d03b3b;
+      --status-info: #2a78d6;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:where(:not([data-theme="light"])) {
+        color-scheme: dark;
+        --surface-1: #1a1a19;
+        --page-plane: #0d0d0d;
+        --text-primary: #ffffff;
+        --text-secondary: #c3c2b7;
+        --muted: #898781;
+        --gridline: #2c2c2a;
+        --baseline: #383835;
+        --border: rgba(255, 255, 255, 0.10);
+        --card-bg: #212120;
+        --series-1: #3987e5;
+        --series-2: #d95926;
+        --series-3: #199e70;
+        --series-4: #c98500;
+        --series-5: #d55181;
+        --series-6: #008300;
+        --series-7: #9085e9;
+        --series-8: #e66767;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--page-plane);
+      color: var(--text-primary);
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .wrap {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 20px 20px 60px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 6px 2px 18px;
+      border-bottom: 1px solid var(--gridline);
+      margin-bottom: 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .brand .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--series-1);
+    }
+
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: 13px;
+      margin-right: auto;
+    }
+
+    .live-badge {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .04em;
+      color: var(--status-good);
+      border: 1px solid var(--status-good);
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--status-good) 12%, transparent);
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .search {
+      flex: 1 1 220px;
+      max-width: 320px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface-1);
+      color: var(--text-primary);
+      font-size: 13px;
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface-1);
+      color: var(--text-secondary);
+      font-size: 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .chip .sw {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .chip.active {
+      color: var(--text-primary);
+      border-color: currentColor;
+      background: var(--card-bg);
+      font-weight: 600;
+    }
+
+    .refresh-note {
+      font-size: 11.5px;
+      color: var(--muted);
+      margin-left: auto;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
+      gap: 14px;
+    }
+
+    .empty {
+      color: var(--text-secondary);
+      padding: 24px 4px;
+    }
+
+    .empty a {
+      color: var(--series-1);
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      cursor: pointer;
+      transition: border-color .15s ease, transform .1s ease;
+    }
+
+    .card:hover {
+      border-color: var(--baseline);
+    }
+
+    .card:active {
+      transform: scale(0.99);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      gap: 8px;
+    }
+
+    .mfr {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .mfr .sw {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 999px;
+    }
+
+    .status-pill.ok {
+      color: var(--status-good);
+      background: color-mix(in srgb, var(--status-good) 14%, transparent);
+    }
+
+    .status-pill.warn {
+      color: #9a6a00;
+      background: color-mix(in srgb, var(--status-warning) 22%, transparent);
+    }
+
+    .status-pill.bad {
+      color: var(--status-critical);
+      background: color-mix(in srgb, var(--status-critical) 14%, transparent);
+    }
+
+    @media (prefers-color-scheme:dark) {
+      .status-pill.warn {
+        color: var(--status-warning);
+      }
+    }
+
+    .model {
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .serial {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .screen {
+      position: relative;
+      aspect-ratio: 9/16;
+      max-height: 220px;
+      margin: 0 auto 10px;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #101114;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .screen img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    .screen .placeholder {
+      color: #5a5f68;
+      font-size: 11px;
+      text-align: center;
+      padding: 10px;
+    }
+
+    .card-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .details-link {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--series-1);
+    }
+
+    .backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 50;
+    }
+
+    .backdrop.open {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--surface-1);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 760px;
+      max-height: 90vh;
+      overflow: auto;
+      border: 1px solid var(--border);
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--gridline);
+      position: sticky;
+      top: 0;
+      background: var(--surface-1);
+    }
+
+    .modal-head .model {
+      font-size: 16px;
+    }
+
+    .modal-head .close {
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 20px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 4px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      padding: 10px 18px 0;
+    }
+
+    .tab-btn {
+      border: none;
+      background: none;
+      color: var(--text-secondary);
+      font-size: 12.5px;
+      font-weight: 600;
+      padding: 8px 12px;
+      border-radius: 8px 8px 0 0;
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      color: var(--text-primary);
+      background: var(--card-bg);
+    }
+
+    .tab-panel {
+      display: none;
+      padding: 16px 18px 20px;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    .modal-screen {
+      position: relative;
+      max-width: 300px;
+      margin: 0 auto 10px;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #101114;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 220px;
+    }
+
+    .modal-screen img {
+      width: 100%;
+      display: block;
+    }
+
+    .row-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 6px;
+    }
+
+    .btn {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      border-color: var(--baseline);
+    }
+
+    .btn.primary {
+      background: var(--series-1);
+      color: #fff;
+      border-color: var(--series-1);
+    }
+
+    .btn:disabled {
+      opacity: .55;
+      cursor: default;
+    }
+
+    .loglines {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11.5px;
+      background: var(--page-plane);
+      border: 1px solid var(--gridline);
+      border-radius: 8px;
+      padding: 10px 12px;
+      max-height: 320px;
+      overflow: auto;
+      white-space: pre-wrap;
+    }
+
+    .form-field {
+      margin-bottom: 12px;
+    }
+
+    .form-field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .form-field input,
+    .form-field textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 13px;
+    }
+
+    .form-field textarea {
+      min-height: 90px;
+      resize: vertical;
+    }
+
+    .bug-result {
+      margin-top: 10px;
+      font-size: 13px;
+    }
+
+    .bug-result.ok {
+      color: var(--status-good);
+    }
+
+    .bug-result.error {
+      color: var(--status-critical);
+    }
+
+    /* ---- painel de conexões (USB / Wi-Fi / Bluetooth) ---- */
+
+    .conn-panel {
+      display: none;
+    }
+
+    .conn-panel.open {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(292px, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .conn-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+    }
+
+    .conn-card h3 {
+      margin: 0 0 3px;
+      font-size: 13.5px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .conn-card h3 .sw {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+    }
+
+    .conn-card .hint {
+      font-size: 11.5px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .conn-card ol {
+      margin: 0 0 10px;
+      padding-left: 18px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .conn-card ol li {
+      margin-bottom: 3px;
+    }
+
+    .conn-status {
+      font-size: 11.5px;
+      color: var(--text-secondary);
+      border: 1px solid var(--gridline);
+      border-radius: 8px;
+      padding: 7px 9px;
+      margin-bottom: 10px;
+      white-space: pre-wrap;
+    }
+
+    .inline-form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .inline-form input {
+      flex: 1 1 96px;
+      min-width: 0;
+      padding: 6px 9px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface-1);
+      color: var(--text-primary);
+      font-size: 12px;
+    }
+
+    .conn-result {
+      font-size: 12px;
+      margin-top: 6px;
+      white-space: pre-wrap;
+    }
+
+    .conn-result.ok {
+      color: var(--status-good);
+    }
+
+    .conn-result.error {
+      color: var(--status-critical);
+    }
+
+    .usb-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      padding: 6px 0;
+      border-top: 1px solid var(--gridline);
+    }
+
+    .usb-row .grow {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .transport-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: .02em;
+      padding: 2px 7px;
+      border-radius: 999px;
+      border: 1px solid currentColor;
+    }
+
+    .transport-badge.bluetooth {
+      color: var(--series-1);
+    }
+
+    .transport-badge.wifi {
+      color: var(--series-3);
+    }
+
+    .transport-badge.usb {
+      color: var(--muted);
+    }
+
+    /* ---- seleção de vários dispositivos ---- */
+
+    .card-check {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .card-check input {
+      accent-color: var(--series-1);
+      cursor: pointer;
+      margin: 0;
+    }
+
+    .sel-bar {
+      display: none;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      background: var(--card-bg);
+      border: 1px solid var(--series-1);
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-bottom: 14px;
+      font-size: 12.5px;
+    }
+
+    .sel-bar.open {
+      display: flex;
+    }
+
+    .sel-bar .count {
+      font-weight: 700;
+    }
+
+    .sel-bar .spacer {
+      flex: 1;
+    }
+
+    .sel-result {
+      font-size: 12px;
+      width: 100%;
+      white-space: pre-wrap;
+      color: var(--text-secondary);
+    }
+
+    .footnote {
+      margin-top: 28px;
+      padding-top: 16px;
+      border-top: 1px solid var(--gridline);
+      color: var(--text-secondary);
+      font-size: 12.5px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+
+    <div class="topbar">
+      <div class="brand"><span class="dot"></span>MDM Test Lab</div>
+      <div class="subtitle">Tela e logs reais via ADB · criação de bugs no Jira</div>
+      <span class="live-badge">AO VIVO</span>
+    </div>
+
+    <div class="toolbar">
+      <input class="search" id="search" type="text" placeholder="Buscar por modelo, fabricante ou serial…">
+      <div class="chip-row" id="statusChips"></div>
+      <button class="btn" id="btnConnections">+ Conectar dispositivo</button>
+      <span class="refresh-note" id="refreshNote"></span>
+    </div>
+
+    <section class="conn-panel" id="connPanel">
+
+      <div class="conn-card">
+        <h3><span class="sw" style="background:var(--series-1)"></span>Bluetooth (sem cabo)</h3>
+        <div class="hint">
+          O Android não expõe o adb por Bluetooth puro. O caminho que funciona é o
+          <strong>tethering por Bluetooth (PAN)</strong>: o link BT vira uma rede IP e o adb roda por cima
+          dela — tela, logcat e bug no Jira funcionam igual, sem cabo.
+        </div>
+        <div class="conn-status" id="btStatus">Clique em “Verificar Bluetooth do PC” para ver o estado.</div>
+        <ol>
+          <li>Pareie o terminal com este PC (botão abaixo abre o Bluetooth do Windows).</li>
+          <li>No terminal: Configurações → Ponto de acesso e tethering → <strong>Tethering por Bluetooth</strong>.</li>
+          <li>No Windows, em <strong>Dispositivos e Impressoras</strong> (botão abaixo): clique com o botão
+            direito no terminal pareado → <strong>Conectar usando → Ponto de acesso</strong>. Só esse painel
+            clássico tem essa opção — a tela nova de Bluetooth do Windows 11 pareia, mas não sobe a rede.</li>
+          <li>Uma vez só, com cabo: use “Habilitar sem fio” no cartão USB (liga o <code>adb tcpip</code>).</li>
+          <li>Volte aqui e clique em <strong>Conectar via Bluetooth</strong>.</li>
+        </ol>
+        <div class="inline-form">
+          <input id="btHost" type="text" placeholder="IP no PAN (padrão 192.168.44.1)">
+          <input id="btPort" type="text" placeholder="Porta (5555)">
+        </div>
+        <div class="row-actions" style="justify-content:flex-start">
+          <button class="btn primary" id="btnBtConnect">Conectar via Bluetooth</button>
+          <button class="btn" id="btnBtCheck">Verificar Bluetooth do PC</button>
+          <button class="btn" id="btnBtSettings">Abrir Bluetooth do Windows</button>
+          <button class="btn" id="btnBtDevices">Abrir Dispositivos e Impressoras</button>
+        </div>
+        <div class="conn-result" id="btResult"></div>
+      </div>
+
+      <div class="conn-card">
+        <h3><span class="sw" style="background:var(--series-3)"></span>Wi-Fi (sem cabo)</h3>
+        <div class="hint">
+          Mesma rede do PC. Se o terminal for Android 11+, use o pareamento por código
+          (Opções do desenvolvedor → Depuração sem fio); nos mais antigos, habilite o
+          <code>adb tcpip</code> uma vez por cabo no cartão USB.
+        </div>
+        <div class="inline-form">
+          <input id="wifiHost" type="text" placeholder="IP do terminal">
+          <input id="wifiPort" type="text" placeholder="Porta (5555)">
+        </div>
+        <div class="row-actions" style="justify-content:flex-start">
+          <button class="btn primary" id="btnWifiConnect">Conectar</button>
+        </div>
+        <div class="hint" style="margin:10px 0 6px">Pareamento por código (Android 11+):</div>
+        <div class="inline-form">
+          <input id="pairHost" type="text" placeholder="IP">
+          <input id="pairPort" type="text" placeholder="Porta do pareamento">
+          <input id="pairCode" type="text" placeholder="Código de 6 dígitos">
+        </div>
+        <div class="row-actions" style="justify-content:flex-start">
+          <button class="btn" id="btnPair">Parear</button>
+        </div>
+        <div class="conn-result" id="wifiResult"></div>
+      </div>
+
+      <div class="conn-card">
+        <h3><span class="sw" style="background:var(--muted)"></span>USB (cabo) e liberação sem fio</h3>
+        <div class="hint">
+          Terminais no cabo agora. “Habilitar sem fio” roda <code>adb tcpip 5555</code> nele e mostra os IPs
+          dele por interface — <code>bt-pan</code> é a rede do Bluetooth, <code>wlan0</code> é o Wi-Fi. Depois
+          disso dá pra tirar o cabo e conectar por qualquer um dos dois.
+          <br><br>
+          Normal acontecer: esse comando reinicia o <code>adbd</code>, então o terminal pode sumir da lista
+          por alguns segundos (ou aparecer como “Offline”) e voltar sozinho. Se ele não voltar, veja se o
+          <strong>tethering USB</strong> ficou ligado no aparelho — com ele ligado, o terminal ocupa o USB
+          com a rede e o adb não acha mais o cabo.
+        </div>
+        <div id="usbList"></div>
+        <div class="conn-result" id="usbResult"></div>
+      </div>
+
+    </section>
+
+    <div class="sel-bar" id="selBar">
+      <span class="count" id="selCount"></span>
+      <button class="btn" id="btnBatchClear">Limpar logs de todos (início do teste)</button>
+      <button class="btn primary" id="btnBatchBug">Reportar bug com todos</button>
+      <span class="spacer"></span>
+      <button class="btn" id="btnSelNone">Limpar seleção</button>
+      <div class="sel-result" id="selResult"></div>
+    </div>
+
+    <div class="grid" id="grid">
+      <div class="empty">Procurando dispositivos via adb…</div>
+    </div>
+
+    <div class="footnote">
+      Cada card atualiza a tela periodicamente via <code>adb exec-out screencap</code>. Abra um dispositivo para ver a
+      tela ampliada, o logcat e reportar um bug (cria issue no Jira com o log e a tela anexados).
+    </div>
+  </div>
+
+  <div class="backdrop" id="backdrop">
+    <div class="modal" id="modal">
+      <div class="modal-head">
+        <span class="model" id="mModel"></span>
+        <button class="close" id="mClose" aria-label="Fechar">✕</button>
+      </div>
+      <div style="padding:10px 18px 0; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <span class="mfr" id="mMfr"></span>
+        <span class="status-pill" id="mStatus"></span>
+        <span id="mTransport"></span>
+        <button class="btn" id="mBtnConn" style="display:none"></button>
+      </div>
+      <div style="padding:6px 18px 0; font-size:11.5px; color:var(--muted);" id="mConnNote"></div>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="tela">Tela</button>
+        <button class="tab-btn" data-tab="logs">Logs</button>
+        <button class="tab-btn" data-tab="bug">Reportar bug</button>
+        <button class="tab-btn" data-tab="comment">Comentar card</button>
+      </div>
+
+      <div class="tab-panel active" data-panel="tela">
+        <div class="modal-screen" id="mScreen"><span class="placeholder"
+            style="color:#5a5f68;font-size:12px;">carregando…</span></div>
+        <div class="row-actions">
+          <button class="btn" id="btnRefreshScreen">Atualizar agora</button>
+          <button class="btn" id="btnToggleLive">Pausar ao vivo</button>
+        </div>
+      </div>
+
+      <div class="tab-panel" data-panel="logs">
+        <div class="row-actions">
+          <button class="btn" id="btnRefreshLogs">Atualizar logs</button>
+          <button class="btn" id="btnClearLogs">Limpar logs (início do teste)</button>
+        </div>
+        <div id="logFilterNote" style="font-size:11.5px; color:var(--muted); margin-bottom:6px;"></div>
+        <div class="loglines" id="logLines">carregando…</div>
+      </div>
+
+      <div class="tab-panel" data-panel="bug">
+        <div class="form-field">
+          <label>Título do bug</label>
+          <input id="bugTitle" type="text" placeholder="Ex: Comando de política de senha não aplica no Ingenico DX8000">
+        </div>
+        <div class="form-field">
+          <label>Descrição (o que era esperado x o que aconteceu)</label>
+          <textarea id="bugDesc"
+            placeholder="Descreva o comando disparado no portal e o comportamento observado…"></textarea>
+        </div>
+        <button class="btn primary" id="btnSendBug">Criar bug no Jira</button>
+        <div class="bug-result" id="bugResult"></div>
+        <div style="font-size:11.5px; color:var(--muted); margin-top:8px;">
+          Anexa automaticamente a tela e o logcat atual do dispositivo ao criar o bug.
+        </div>
+      </div>
+
+      <div class="tab-panel" data-panel="comment">
+        <div class="form-field">
+          <label>Card do Jira</label>
+          <input id="commentKey" type="text" placeholder="Ex: MDM-123">
+        </div>
+        <div class="form-field">
+          <label>Comentário</label>
+          <textarea id="commentText" placeholder="Ex: Reproduzido de novo neste aparelho, segue evidência…"></textarea>
+        </div>
+        <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-secondary); margin-bottom:10px;">
+          <input type="checkbox" id="commentAttach" checked>Anexar tela e log atual do dispositivo
+        </label>
+        <button class="btn primary" id="btnSendComment">Comentar no Jira</button>
+        <div class="bug-result" id="commentResult"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="backdrop" id="batchBackdrop">
+    <div class="modal" style="max-width:560px">
+      <div class="modal-head">
+        <span class="model">Reportar bug com vários dispositivos</span>
+        <button class="close" id="batchClose" aria-label="Fechar">✕</button>
+      </div>
+      <div class="tab-panel active">
+        <div class="hint" style="font-size:11.5px;color:var(--muted);margin-bottom:10px" id="batchDevices"></div>
+        <div class="form-field">
+          <label>Título do bug</label>
+          <input id="batchTitle" type="text" placeholder="Ex: Comando de política de senha não aplica em nenhum terminal">
+        </div>
+        <div class="form-field">
+          <label>Descrição (o que era esperado x o que aconteceu)</label>
+          <textarea id="batchDesc" placeholder="Descreva o comando disparado no portal e o comportamento observado…"></textarea>
+        </div>
+        <button class="btn primary" id="btnBatchSend">Criar bug no Jira</button>
+        <div class="bug-result" id="batchResult"></div>
+        <div style="font-size:11.5px; color:var(--muted); margin-top:8px;">
+          Cria uma única issue com a tela e o logcat de cada dispositivo selecionado anexados.
+        </div>
+        <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
+        <div class="form-field">
+          <label>Ou comentar num card já existente</label>
+          <input id="batchCommentKey" type="text" placeholder="Ex: MDM-123">
+        </div>
+        <div class="form-field">
+          <textarea id="batchCommentText" placeholder="Ex: Reproduzido de novo nestes aparelhos, segue evidência…"></textarea>
+        </div>
+        <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-secondary); margin-bottom:10px;">
+          <input type="checkbox" id="batchCommentAttach" checked>Anexar tela e log atual de cada dispositivo
+        </label>
+        <button class="btn primary" id="btnBatchComment">Comentar no Jira</button>
+        <div class="bug-result" id="batchCommentResult"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let DEVICES = [];
+    let activeStatuses = new Set();
+    let searchText = '';
+    let currentSerial = null;
+    let liveTimer = null;
+    let liveOn = true;
+    let selected = new Set();
+
+    function colorForString(str) {
+      const slots = ['var(--series-1)', 'var(--series-2)', 'var(--series-3)', 'var(--series-4)', 'var(--series-5)', 'var(--series-6)', 'var(--series-7)', 'var(--series-8)'];
+      let h = 0;
+      for (const c of (str || '?')) h = (h * 31 + c.charCodeAt(0)) % 997;
+      return slots[h % slots.length];
+    }
+
+    function statusMeta(state) {
+      if (state === 'device') return { cls: 'ok', label: 'Conectado' };
+      if (state === 'unauthorized') return { cls: 'warn', label: 'Autorizar no aparelho' };
+      return { cls: 'bad', label: 'Offline' };
+    }
+
+    // Por qual caminho o terminal está no adb: cabo, Wi-Fi ou a rede do Bluetooth (PAN).
+    const TRANSPORT_ICON = { bluetooth: '⌁', wifi: '≋', usb: '⇄' };
+
+    function transportBadge(d) {
+      const t = d.transport || 'usb';
+      const label = d.transportLabel || t;
+      return `<span class="transport-badge ${t}">${TRANSPORT_ICON[t] || ''} ${label}</span>`;
+    }
+
+    function setResult(id, message, cls) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.className = (el.classList.contains('bug-result') ? 'bug-result' : 'conn-result') + (cls ? ' ' + cls : '');
+      el.textContent = message;
+    }
+
+    async function postJson(url, body) {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body || {}),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.error || 'Falha na requisição.');
+      return data;
+    }
+
+    async function fetchDevices() {
+      try {
+        const r = await fetch('/api/devices');
+        const data = await r.json();
+        if (data.error) {
+          document.getElementById('grid').innerHTML = `<div class="empty">${data.error}</div>`;
+          document.getElementById('refreshNote').textContent = '';
+          return;
+        }
+        DEVICES = data.devices;
+        document.getElementById('refreshNote').textContent = `${DEVICES.length} dispositivo(s) · atualizado às ${new Date().toLocaleTimeString('pt-BR')}`;
+        renderChips();
+        renderGrid();
+        if (document.getElementById('connPanel').classList.contains('open')) renderUsbList();
+      } catch (e) {
+        document.getElementById('grid').innerHTML = '<div class="empty">Não consegui falar com o servidor local. Ele está rodando (npm start)?</div>';
+      }
+    }
+
+    function renderChips() {
+      const states = [...new Set(DEVICES.map(d => d.state))];
+      document.getElementById('statusChips').innerHTML = states.map(s => {
+        const meta = statusMeta(s);
+        const color = meta.cls === 'ok' ? 'var(--status-good)' : meta.cls === 'warn' ? '#9a6a00' : 'var(--status-critical)';
+        return `<span class="chip ${activeStatuses.has(s) ? 'active' : ''}" data-status="${s}" style="color:${activeStatuses.has(s) ? color : ''}">
+      <span class="sw" style="background:${color}"></span>${meta.label}
+    </span>`;
+      }).join('');
+    }
+
+    function filteredDevices() {
+      return DEVICES.filter(d => {
+        if (activeStatuses.size && !activeStatuses.has(d.state)) return false;
+        if (searchText) {
+          const hay = (d.manufacturer + ' ' + d.model + ' ' + d.serial).toLowerCase();
+          if (!hay.includes(searchText.toLowerCase())) return false;
+        }
+        return true;
+      });
+    }
+
+    function renderGrid() {
+      const list = filteredDevices();
+      if (!list.length) {
+        document.getElementById('grid').innerHTML =
+          '<div class="empty">Nenhum dispositivo encontrado. Conecte um terminal por cabo, ou use ' +
+          '<strong>“+ Conectar dispositivo”</strong> para conectar sem cabo via Bluetooth (PAN) ou Wi-Fi.</div>';
+        renderSelBar();
+        return;
+      }
+      document.getElementById('grid').innerHTML = list.map(d => {
+        const color = colorForString(d.manufacturer || d.serial);
+        const meta = statusMeta(d.state);
+        return `
+    <div class="card" data-serial="${d.serial}">
+      <div class="card-top">
+        <span class="mfr"><span class="sw" style="background:${color}"></span>${d.manufacturer || '(fabricante desconhecido)'}</span>
+        ${transportBadge(d)}
+        <span class="status-pill ${meta.cls}">${meta.label}</span>
+      </div>
+      <div class="model">${d.model || '(modelo desconhecido)'}</div>
+      <div class="serial">${d.serial}${d.androidVersion ? ' · Android ' + d.androidVersion : ''}</div>
+      <div class="screen">${d.state === 'device' ? `<img loading="lazy" src="/api/devices/${encodeURIComponent(d.serial)}/screenshot?t=${Date.now()}">` : '<span class="placeholder">sem acesso à tela</span>'}</div>
+      <div class="card-foot">
+        <label class="card-check"><input type="checkbox" data-check="${d.serial}" ${selected.has(d.serial) ? 'checked' : ''}>Selecionar</label>
+        <span class="details-link">Ver detalhes →</span>
+      </div>
+    </div>`;
+      }).join('');
+
+      document.querySelectorAll('.card').forEach(el => {
+        el.addEventListener('click', () => openModal(el.dataset.serial));
+      });
+
+      // O checkbox vive dentro do card, que abre o modal no clique — sem
+      // stopPropagation, marcar um dispositivo abriria o modal dele.
+      document.querySelectorAll('[data-check]').forEach(el => {
+        el.addEventListener('click', (e) => e.stopPropagation());
+        el.addEventListener('change', (e) => {
+          const serial = el.dataset.check;
+          e.target.checked ? selected.add(serial) : selected.delete(serial);
+          renderSelBar();
+        });
+      });
+
+      renderSelBar();
+    }
+
+    // ---------- seleção de vários dispositivos ----------
+
+    // Dispositivos escolhidos que continuam conectados — quem sumiu do adb
+    // (cabo puxado, PAN caiu) não entra em ação em lote.
+    function selectedOnline() {
+      return [...selected].filter(s => {
+        const d = DEVICES.find(x => x.serial === s);
+        return d && d.state === 'device';
+      });
+    }
+
+    function renderSelBar() {
+      const bar = document.getElementById('selBar');
+      const online = selectedOnline();
+      bar.classList.toggle('open', selected.size > 0);
+      const missing = selected.size - online.length;
+      document.getElementById('selCount').textContent =
+        `${selected.size} selecionado(s)` + (missing > 0 ? ` · ${missing} fora do ar (ignorado)` : '');
+      document.getElementById('btnBatchClear').disabled = !online.length;
+      document.getElementById('btnBatchBug').disabled = !online.length;
+    }
+
+    function openModal(serial) {
+      currentSerial = serial;
+      const d = DEVICES.find(x => x.serial === serial);
+      if (!d) return;
+      const meta = statusMeta(d.state);
+      document.getElementById('mModel').textContent = `${d.model || d.manufacturer || 'Dispositivo'} · ${serial}`;
+      document.getElementById('mMfr').innerHTML = `<span class="sw" style="background:${colorForString(d.manufacturer)}"></span>${d.manufacturer || '?'}`;
+      document.getElementById('mMfr').style.cssText = 'display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--text-secondary);';
+      document.getElementById('mStatus').className = `status-pill ${meta.cls}`;
+      document.getElementById('mStatus').textContent = meta.label;
+
+      document.getElementById('mTransport').innerHTML = transportBadge(d);
+      const connBtn = document.getElementById('mBtnConn');
+      connBtn.style.display = d.state === 'device' ? '' : 'none';
+      connBtn.textContent = d.transport === 'usb' ? 'Habilitar sem fio' : 'Desconectar';
+      connBtn.dataset.mode = d.transport === 'usb' ? 'wireless' : 'disconnect';
+      document.getElementById('mConnNote').textContent = '';
+      if (d.state === 'device') loadDeviceBluetooth(serial);
+
+      document.getElementById('bugTitle').value = '';
+      document.getElementById('bugDesc').value = '';
+      document.getElementById('bugResult').textContent = '';
+      document.getElementById('bugResult').className = 'bug-result';
+
+      document.getElementById('commentKey').value = '';
+      document.getElementById('commentText').value = '';
+      document.getElementById('commentAttach').checked = true;
+      document.getElementById('commentResult').textContent = '';
+      document.getElementById('commentResult').className = 'bug-result';
+
+      document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
+      document.querySelectorAll('.tab-panel').forEach((p, i) => p.classList.toggle('active', i === 0));
+
+      liveOn = true;
+      document.getElementById('btnToggleLive').textContent = 'Pausar ao vivo';
+      refreshScreen();
+      refreshLogs();
+      startLive();
+
+      document.getElementById('backdrop').classList.add('open');
+    }
+
+    function closeModal() {
+      document.getElementById('backdrop').classList.remove('open');
+      stopLive();
+      currentSerial = null;
+    }
+
+    function refreshScreen() {
+      if (!currentSerial) return;
+      const img = new Image();
+      img.onload = () => { document.getElementById('mScreen').innerHTML = ''; document.getElementById('mScreen').appendChild(img); };
+      img.onerror = () => { document.getElementById('mScreen').innerHTML = '<span class="placeholder" style="color:#5a5f68;font-size:12px;">falha ao capturar a tela</span>'; };
+      img.src = `/api/devices/${encodeURIComponent(currentSerial)}/screenshot?t=${Date.now()}`;
+    }
+
+    function startLive() {
+      stopLive();
+      liveTimer = setInterval(() => { if (liveOn) refreshScreen(); }, 2000);
+    }
+    function stopLive() { if (liveTimer) { clearInterval(liveTimer); liveTimer = null; } }
+
+    async function refreshLogs() {
+      if (!currentSerial) return;
+      document.getElementById('logLines').textContent = 'carregando…';
+      document.getElementById('logFilterNote').textContent = '';
+      try {
+        const r = await fetch(`/api/devices/${encodeURIComponent(currentSerial)}/logs?lines=300`);
+        const data = await r.json();
+        document.getElementById('logLines').textContent = data.text || data.error || '(sem logs)';
+        if (data.filtered) {
+          document.getElementById('logFilterNote').textContent = `Filtrado pelo processo de ${data.package} (PID ${data.pid}) — sem ruído do resto do Android.`;
+        } else if (data.package) {
+          document.getElementById('logFilterNote').textContent = `Não encontrei o processo de ${data.package} rodando — mostrando o log geral do aparelho.`;
+        }
+      } catch (e) {
+        document.getElementById('logLines').textContent = 'Falha ao buscar logs.';
+      }
+    }
+
+    document.getElementById('mClose').addEventListener('click', closeModal);
+    document.getElementById('backdrop').addEventListener('click', (e) => { if (e.target.id === 'backdrop') closeModal(); });
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === btn.dataset.tab));
+        if (btn.dataset.tab === 'logs') refreshLogs();
+      });
+    });
+
+    document.getElementById('btnRefreshScreen').addEventListener('click', refreshScreen);
+    document.getElementById('btnToggleLive').addEventListener('click', (e) => {
+      liveOn = !liveOn;
+      e.target.textContent = liveOn ? 'Pausar ao vivo' : 'Retomar ao vivo';
+    });
+    document.getElementById('btnRefreshLogs').addEventListener('click', refreshLogs);
+    document.getElementById('btnClearLogs').addEventListener('click', async () => {
+      if (!currentSerial) return;
+      await fetch(`/api/devices/${encodeURIComponent(currentSerial)}/logs/clear`, { method: 'POST' });
+      refreshLogs();
+    });
+
+    document.getElementById('btnSendBug').addEventListener('click', async () => {
+      if (!currentSerial) return;
+      const title = document.getElementById('bugTitle').value.trim();
+      const description = document.getElementById('bugDesc').value.trim();
+      const resEl = document.getElementById('bugResult');
+      if (!title) { resEl.className = 'bug-result error'; resEl.textContent = 'Escreva um título para o bug.'; return; }
+      resEl.className = 'bug-result'; resEl.textContent = 'Criando no Jira…';
+      try {
+        const r = await fetch('/api/bugs', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ serial: currentSerial, title, description })
+        });
+        const data = await r.json();
+        if (!r.ok) { resEl.className = 'bug-result error'; resEl.textContent = data.error || 'Falha ao criar o bug.'; return; }
+        resEl.className = 'bug-result ok';
+        resEl.innerHTML = `Bug criado: <a href="${data.url}" target="_blank" rel="noopener">${data.key}</a>`;
+      } catch (e) {
+        resEl.className = 'bug-result error'; resEl.textContent = 'Falha ao falar com o servidor local.';
+      }
+    });
+
+    document.getElementById('btnSendComment').addEventListener('click', async () => {
+      if (!currentSerial) return;
+      const key = document.getElementById('commentKey').value.trim();
+      const comment = document.getElementById('commentText').value.trim();
+      const attach = document.getElementById('commentAttach').checked;
+      const resEl = document.getElementById('commentResult');
+      if (!key) { resEl.className = 'bug-result error'; resEl.textContent = 'Informe a chave do card (ex.: MDM-123).'; return; }
+      if (!comment) { resEl.className = 'bug-result error'; resEl.textContent = 'Escreva um comentário.'; return; }
+      resEl.className = 'bug-result'; resEl.textContent = 'Comentando no Jira…';
+      try {
+        const r = await fetch(`/api/issues/${encodeURIComponent(key)}/comments`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ serial: attach ? currentSerial : undefined, comment, attach })
+        });
+        const data = await r.json();
+        if (!r.ok) { resEl.className = 'bug-result error'; resEl.textContent = data.error || 'Falha ao comentar no card.'; return; }
+        resEl.className = 'bug-result ok';
+        resEl.innerHTML = `Comentário adicionado: <a href="${data.url}" target="_blank" rel="noopener">${data.key}</a>`;
+      } catch (e) {
+        resEl.className = 'bug-result error'; resEl.textContent = 'Falha ao falar com o servidor local.';
+      }
+    });
+
+    // ---------- painel de conexões: Bluetooth (PAN), Wi-Fi e liberação por USB ----------
+
+    document.getElementById('btnConnections').addEventListener('click', () => {
+      const panel = document.getElementById('connPanel');
+      const open = panel.classList.toggle('open');
+      document.getElementById('btnConnections').textContent = open ? '− Fechar conexões' : '+ Conectar dispositivo';
+      if (open) { renderUsbList(); checkPcBluetooth(); }
+    });
+
+    // Estado do Bluetooth do PC: rádio presente/ligado, aparelhos pareados e se o
+    // PAN já subiu (o PC pegou IP numa interface Bluetooth).
+    async function checkPcBluetooth() {
+      const el = document.getElementById('btStatus');
+      el.textContent = 'Verificando…';
+      try {
+        const r = await fetch('/api/bluetooth/pc');
+        const data = await r.json();
+        if (data.error && !data.radios) { el.textContent = data.error; return; }
+
+        const lines = [];
+        lines.push(data.hasRadio
+          ? `Rádio Bluetooth: ${data.radios.map(x => `${x.name} (${x.status})`).join(', ')}`
+          : 'Rádio Bluetooth: não encontrei adaptador Bluetooth neste PC.');
+        lines.push(data.paired.length
+          ? `Pareados: ${data.paired.map(p => p.name).filter(Boolean).join(', ')}`
+          : 'Pareados: nenhum aparelho Bluetooth pareado ainda.');
+        if (data.panUp) {
+          lines.push(`Rede Bluetooth (PAN) no ar: ${data.panAddresses.filter(a => !a.linkLocal).map(a => `${a.iface} = ${a.ip}`).join(', ')}`);
+        } else if (data.panDhcpPending) {
+          // Windows diz "conectado" e nada funciona: link de PAN sem DHCP.
+          lines.push(
+            `Rede Bluetooth (PAN): o link subiu (${data.panAddresses.map(a => a.iface).join(', ')}), mas o ` +
+            'terminal não entregou IP — o Windows ficou com 169.254.x.x, que é o endereço de “sem DHCP”. ' +
+            'Desligue e ligue o “Tethering por Bluetooth” no terminal, reconecte o ponto de acesso no Windows, ' +
+            'e confirme que o terminal tem Wi-Fi ou dados (o Android recusa servir tethering sem rede própria).'
+          );
+        } else {
+          lines.push('Rede Bluetooth (PAN): ainda não subiu — falta ligar o tethering no terminal e conectar como “ponto de acesso” no Windows.');
+        }
+        el.textContent = lines.join('\n');
+      } catch (e) {
+        el.textContent = 'Falha ao verificar o Bluetooth do PC.';
+      }
+    }
+
+    document.getElementById('btnBtCheck').addEventListener('click', checkPcBluetooth);
+
+    document.getElementById('btnBtSettings').addEventListener('click', async () => {
+      try {
+        await postJson('/api/bluetooth/open-settings');
+        setResult('btResult', 'Abri o painel de Bluetooth do Windows — pareie o terminal por lá.', 'ok');
+      } catch (e) {
+        setResult('btResult', e.message, 'error');
+      }
+    });
+
+    document.getElementById('btnBtDevices').addEventListener('click', async () => {
+      try {
+        await postJson('/api/bluetooth/open-devices-panel');
+        setResult('btResult', 'Abri "Dispositivos e Impressoras". Clique com o botao direito no terminal pareado ' +
+          '-> Conectar usando -> Ponto de acesso.', 'ok');
+      } catch (e) {
+        setResult('btResult', e.message, 'error');
+      }
+    });
+
+    document.getElementById('btnBtConnect').addEventListener('click', async () => {
+      const host = document.getElementById('btHost').value.trim();
+      const port = document.getElementById('btPort').value.trim();
+      setResult('btResult', 'Procurando o terminal na rede Bluetooth…');
+      try {
+        const data = await postJson('/api/bluetooth/connect', { host: host || undefined, port: port || undefined });
+        setResult('btResult', `Conectado via Bluetooth: ${data.connected}`, 'ok');
+        fetchDevices();
+      } catch (e) {
+        setResult('btResult', e.message, 'error');
+      }
+    });
+
+    document.getElementById('btnWifiConnect').addEventListener('click', async () => {
+      const host = document.getElementById('wifiHost').value.trim();
+      const port = document.getElementById('wifiPort').value.trim();
+      if (!host) { setResult('wifiResult', 'Informe o IP do terminal.', 'error'); return; }
+      setResult('wifiResult', 'Conectando…');
+      try {
+        const data = await postJson('/api/adb/connect', { host, port: port || undefined, transport: 'wifi' });
+        setResult('wifiResult', `Conectado: ${data.connected}`, 'ok');
+        fetchDevices();
+      } catch (e) {
+        setResult('wifiResult', e.message, 'error');
+      }
+    });
+
+    document.getElementById('btnPair').addEventListener('click', async () => {
+      const host = document.getElementById('pairHost').value.trim();
+      const port = document.getElementById('pairPort').value.trim();
+      const code = document.getElementById('pairCode').value.trim();
+      setResult('wifiResult', 'Pareando…');
+      try {
+        await postJson('/api/adb/pair', { host, port, code });
+        setResult('wifiResult', 'Pareado. Agora conecte usando o IP e a porta de conexão (não a do pareamento).', 'ok');
+      } catch (e) {
+        setResult('wifiResult', e.message, 'error');
+      }
+    });
+
+    // Lista os terminais no cabo, cada um com o botão que libera o adb sem fio.
+    function renderUsbList() {
+      const usb = DEVICES.filter(d => d.transport === 'usb' && d.state === 'device');
+      const net = DEVICES.filter(d => d.transport !== 'usb');
+      const el = document.getElementById('usbList');
+
+      if (!usb.length && !net.length) {
+        el.innerHTML = '<div class="hint" style="margin:0">Nenhum terminal conectado agora.</div>';
+        return;
+      }
+
+      el.innerHTML = [
+        ...usb.map(d => `
+          <div class="usb-row">
+            <span class="grow">${d.model || d.serial} · ${d.serial}</span>
+            <button class="btn" data-wireless="${d.serial}">Habilitar sem fio</button>
+          </div>`),
+        ...net.map(d => `
+          <div class="usb-row">
+            <span class="grow">${d.model || d.serial} · ${d.serial} (${d.transportLabel})</span>
+            <button class="btn" data-disconnect="${d.serial}">Desconectar</button>
+          </div>`),
+      ].join('');
+
+      el.querySelectorAll('[data-wireless]').forEach(btn => {
+        btn.addEventListener('click', () => enableWireless(btn.dataset.wireless, 'usbResult'));
+      });
+      el.querySelectorAll('[data-disconnect]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          try {
+            await postJson('/api/adb/disconnect', { serial: btn.dataset.disconnect });
+            setResult('usbResult', `Desconectado: ${btn.dataset.disconnect}`, 'ok');
+            fetchDevices();
+          } catch (e) {
+            setResult('usbResult', e.message, 'error');
+          }
+        });
+      });
+    }
+
+    // Liga o adb TCP no terminal e oferece um botão por IP dele — bt-pan (Bluetooth)
+    // e wlan0 (Wi-Fi) viram alvos clicáveis de conexão sem cabo.
+    async function enableWireless(serial, resultId) {
+      setResult(resultId, 'Habilitando o adb sem fio no terminal…');
+      try {
+        const data = await postJson(`/api/devices/${encodeURIComponent(serial)}/wireless`, {});
+        const el = document.getElementById(resultId);
+        if (!data.targets.length) {
+          setResult(resultId, `adb tcpip ${data.port} feito, mas o terminal não tem IP em nenhuma interface de rede ainda. ` +
+            'Ligue o Wi-Fi ou o tethering por Bluetooth nele e clique de novo.', 'ok');
+          return;
+        }
+        el.className = 'conn-result ok';
+        el.innerHTML = `adb tcpip ${data.port} feito. Alvos disponíveis (pode tirar o cabo depois de conectar):<br>` +
+          data.targets.map(t =>
+            `<button class="btn" style="margin:6px 6px 0 0" data-connect="${t.target}" data-transport="${t.transport}">` +
+            `${t.transport === 'bluetooth' ? 'Bluetooth' : 'Wi-Fi'} · ${t.iface} · ${t.target}</button>`
+          ).join('');
+
+        el.querySelectorAll('[data-connect]').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const [host, port] = btn.dataset.connect.split(':');
+            setResult(resultId, `Conectando em ${btn.dataset.connect}…`);
+            try {
+              const r = await postJson('/api/adb/connect', { host, port, transport: btn.dataset.transport });
+              setResult(resultId, `Conectado: ${r.connected}`, 'ok');
+              fetchDevices();
+            } catch (e) {
+              setResult(resultId, e.message, 'error');
+            }
+          });
+        });
+      } catch (e) {
+        setResult(resultId, e.message, 'error');
+      }
+    }
+
+    // Bluetooth do lado do terminal: ligado/desligado e se o tethering (bt-pan) está
+    // ativo. Serve pra diagnosticar o PAN e pra conferir política de BT do MDM.
+    async function loadDeviceBluetooth(serial) {
+      try {
+        const r = await fetch(`/api/devices/${encodeURIComponent(serial)}/bluetooth`);
+        const data = await r.json();
+        if (data.error || currentSerial !== serial) return;
+        const parts = [];
+        parts.push('Bluetooth do aparelho: ' + (data.enabled === true ? 'ligado' : data.enabled === false ? 'desligado' : 'não informado'));
+        if (data.name) parts.push('nome: ' + data.name);
+        parts.push(data.panActive ? `tethering Bluetooth ativo (${data.panIp})` : 'tethering Bluetooth inativo');
+        const wifi = (data.interfaces || []).find(i => i.kind === 'wifi');
+        if (wifi) parts.push(`Wi-Fi: ${wifi.ip}`);
+        // As duas armadilhas que travam a conexão sem cabo, vistas em teste real.
+        if (data.wifiHotspotActive) {
+          parts.push('⚠ ponto de acesso Wi-Fi ligado — o wlan0 virou AP, então o aparelho saiu da sua rede (derruba o adb por Wi-Fi)');
+        }
+        if (!data.upstream) {
+          parts.push('⚠ aparelho sem rede própria (upstream) — nesse estado o Android não serve o DHCP do tethering Bluetooth');
+        }
+        document.getElementById('mConnNote').textContent = parts.join(' · ');
+      } catch (e) {
+        /* informação extra: se falhar, o modal segue normal */
+      }
+    }
+
+    document.getElementById('mBtnConn').addEventListener('click', async (e) => {
+      if (!currentSerial) return;
+      const btn = e.target;
+      if (btn.dataset.mode === 'wireless') {
+        document.getElementById('mConnNote').textContent = 'Habilitando o adb sem fio…';
+        try {
+          const data = await postJson(`/api/devices/${encodeURIComponent(currentSerial)}/wireless`, {});
+          const targets = data.targets.map(t => `${t.transport === 'bluetooth' ? 'Bluetooth' : 'Wi-Fi'} ${t.target}`).join(' · ');
+          document.getElementById('mConnNote').textContent = targets
+            ? `adb tcpip ${data.port} feito. Conecte por: ${targets} (use o cartão “Conectar dispositivo”).`
+            : `adb tcpip ${data.port} feito, mas o terminal ainda não tem IP — ligue Wi-Fi ou tethering Bluetooth.`;
+        } catch (err) {
+          document.getElementById('mConnNote').textContent = err.message;
+        }
+        return;
+      }
+      try {
+        await postJson('/api/adb/disconnect', { serial: currentSerial });
+        closeModal();
+        fetchDevices();
+      } catch (err) {
+        document.getElementById('mConnNote').textContent = err.message;
+      }
+    });
+
+    // ---------- ações em lote ----------
+
+    document.getElementById('btnSelNone').addEventListener('click', () => {
+      selected.clear();
+      document.getElementById('selResult').textContent = '';
+      renderGrid();
+    });
+
+    document.getElementById('btnBatchClear').addEventListener('click', async () => {
+      const serials = selectedOnline();
+      if (!serials.length) return;
+      const out = document.getElementById('selResult');
+      out.textContent = 'Limpando o logcat de todos…';
+      try {
+        const data = await postJson('/api/batch/logs/clear', { serials });
+        const failed = data.results.filter(r => !r.ok);
+        out.textContent = failed.length
+          ? `Logs limpos em ${data.results.length - failed.length}/${data.results.length}. Falhou: ` +
+            failed.map(f => `${f.serial} (${f.error})`).join('; ')
+          : `Logs limpos em ${data.results.length} dispositivo(s). Dispare o comando no portal agora.`;
+      } catch (e) {
+        out.textContent = e.message;
+      }
+    });
+
+    document.getElementById('btnBatchBug').addEventListener('click', () => {
+      const serials = selectedOnline();
+      if (!serials.length) return;
+      document.getElementById('batchDevices').textContent =
+        'Dispositivos no bug: ' + serials.map(s => {
+          const d = DEVICES.find(x => x.serial === s) || {};
+          return `${d.model || s} (${d.transportLabel || '?'})`;
+        }).join(', ');
+      document.getElementById('batchTitle').value = '';
+      document.getElementById('batchDesc').value = '';
+      setResult('batchResult', '');
+      document.getElementById('batchCommentKey').value = '';
+      document.getElementById('batchCommentText').value = '';
+      document.getElementById('batchCommentAttach').checked = true;
+      setResult('batchCommentResult', '');
+      document.getElementById('batchBackdrop').classList.add('open');
+    });
+
+    function closeBatch() { document.getElementById('batchBackdrop').classList.remove('open'); }
+    document.getElementById('batchClose').addEventListener('click', closeBatch);
+    document.getElementById('batchBackdrop').addEventListener('click', (e) => {
+      if (e.target.id === 'batchBackdrop') closeBatch();
+    });
+
+    document.getElementById('btnBatchSend').addEventListener('click', async () => {
+      const serials = selectedOnline();
+      const title = document.getElementById('batchTitle').value.trim();
+      const description = document.getElementById('batchDesc').value.trim();
+      if (!title) { setResult('batchResult', 'Escreva um título para o bug.', 'error'); return; }
+      setResult('batchResult', `Criando no Jira com ${serials.length} dispositivo(s)…`);
+      try {
+        const data = await postJson('/api/bugs', { serials, title, description });
+        const el = document.getElementById('batchResult');
+        el.className = 'bug-result ok';
+        el.innerHTML = `Bug criado: <a href="${data.url}" target="_blank" rel="noopener">${data.key}</a>`;
+      } catch (e) {
+        setResult('batchResult', e.message, 'error');
+      }
+    });
+
+    document.getElementById('btnBatchComment').addEventListener('click', async () => {
+      const serials = selectedOnline();
+      const key = document.getElementById('batchCommentKey').value.trim();
+      const comment = document.getElementById('batchCommentText').value.trim();
+      const attach = document.getElementById('batchCommentAttach').checked;
+      if (!key) { setResult('batchCommentResult', 'Informe a chave do card (ex.: MDM-123).', 'error'); return; }
+      if (!comment) { setResult('batchCommentResult', 'Escreva um comentário.', 'error'); return; }
+      setResult('batchCommentResult', `Comentando no Jira com ${serials.length} dispositivo(s)…`);
+      try {
+        const data = await postJson(`/api/issues/${encodeURIComponent(key)}/comments`, {
+          serials: attach ? serials : [], comment, attach
+        });
+        const el = document.getElementById('batchCommentResult');
+        el.className = 'bug-result ok';
+        el.innerHTML = `Comentário adicionado: <a href="${data.url}" target="_blank" rel="noopener">${data.key}</a>`;
+      } catch (e) {
+        setResult('batchCommentResult', e.message, 'error');
+      }
+    });
+
+    document.getElementById('search').addEventListener('input', (e) => { searchText = e.target.value; renderGrid(); });
+    document.getElementById('statusChips').addEventListener('click', (e) => {
+      const chip = e.target.closest('.chip'); if (!chip) return;
+      const key = chip.dataset.status;
+      activeStatuses.has(key) ? activeStatuses.delete(key) : activeStatuses.add(key);
+      renderChips(); renderGrid();
+    });
+
+    fetchDevices();
+    setInterval(fetchDevices, 5000);
+  </script>
+</body>
+
+</html>

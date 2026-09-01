@@ -1,0 +1,19 @@
+# Este repositório está na raiz do seu perfil do Windows — sem isso, o git
+# rastreia a pasta inteira do usuário (AppData, .ssh, node_modules, caches de
+# Python/Node/Android etc.). Ignora tudo por padrão e libera só o projeto que
+# foi alterado nesta conversa (mdm-test-lab).
+*
+
+!/Desktop/
+/Desktop/*
+!/Desktop/PROJETOS/
+/Desktop/PROJETOS/*
+!/Desktop/PROJETOS/mdm-test-lab/
+!/Desktop/PROJETOS/mdm-test-lab/**
+
+# Dentro do mdm-test-lab: nunca versionar dependências geradas nem segredos.
+/Desktop/PROJETOS/mdm-test-lab/node_modules/
+/Desktop/PROJETOS/mdm-test-lab/.env
+
+!/.gitignore
+!/README.md
