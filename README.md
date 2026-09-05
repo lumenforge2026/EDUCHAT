@@ -141,6 +141,8 @@ download > Valores separados por vírgula) e anexa o CSV:
 1. `POST /api/integrations/sheets/upload` (multipart, campo `file`,
    até 5 MB, só `.csv`) — o arquivo fica em memória, nunca é gravado em
    disco, e as linhas parseadas ficam salvas em `sheet_config.uploaded_rows`.
+   **A primeira linha do arquivo é sempre tratada como cabeçalho e
+   descartada** — como toda planilha exportada já vem por padrão.
 2. A partir daí, `GET /api/integrations/sheets/preview` devolve o conteúdo
    do arquivo anexado, sem chamar a API do Google.
 3. Enviar um novo arquivo substitui o anterior; alternar de volta para o
