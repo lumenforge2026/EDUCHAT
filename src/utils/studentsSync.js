@@ -1,5 +1,5 @@
 const pool = require('../db/pool');
-const { fetchSheetValues } = require('./googleSheets');
+const { resolveSheetRows } = require('./googleSheets');
 
 // RF-16 — layout esperado da planilha, a partir da linha configurada em
 // sheet_config.sheet_range (ex.: "Alunos!A2:D"): Nome | Série | Frequência
@@ -35,22 +35,15 @@ async function upsertStudent(row) {
   return true;
 }
 
-// RF-16, RF-17 — lê a planilha configurada (Módulo F) e sincroniza a tabela
-// students, registrando o resultado (sucesso/falha) em sync_runs.
+// RF-16, RF-17 — lê a planilha configurada (Módulo F, nos dois modos —
+// link ou arquivo anexado) e sincroniza a tabela students, registrando o
+// resultado (sucesso/falha) em sync_runs.
 async function syncStudentsFromSheet() {
   const { rows: configRows } = await pool.query('SELECT * FROM sheet_config WHERE id = 1');
   const config = configRows[0];
 
-  if (!config?.sheet_id) {
-    await pool.query(
-      "INSERT INTO sync_runs (status, rows_synced, detail) VALUES ('falha', 0, $1)",
-      ['Nenhuma planilha configurada (RF-15).']
-    );
-    return { status: 'falha', rowsSynced: 0, detail: 'Nenhuma planilha configurada (RF-15).' };
-  }
-
   try {
-    const { values } = await fetchSheetValues(config.sheet_id, config.sheet_range);
+    const { values } = await resolveSheetRows(config);
     let synced = 0;
     for (const row of values) {
       if (await upsertStudent(row)) synced += 1;

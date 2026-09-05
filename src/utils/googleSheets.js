@@ -38,4 +38,32 @@ async function fetchSheetValues(sheetId, range) {
   }
 }
 
-module.exports = { fetchSheetValues };
+// RF-15 — aceita tanto o ID isolado quanto o link completo colado do
+// navegador (ex.: https://docs.google.com/spreadsheets/d/<ID>/edit#gid=0),
+// para não exigir que o Administrador saiba extrair o ID na mão.
+function extractSheetId(input) {
+  const text = String(input || '').trim();
+  const match = text.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  return match ? match[1] : text;
+}
+
+// Fonte única de leitura para o restante do sistema (prévia e sincronização
+// do dashboard escolar): resolve tanto o modo "api" (Google Sheets ao vivo)
+// quanto o modo "upload" (último CSV anexado), sem que quem chama precise
+// saber qual dos dois está configurado.
+async function resolveSheetRows(config) {
+  if (!config) {
+    throw Object.assign(new Error('Nenhuma planilha configurada (RF-15).'), { status: 400 });
+  }
+
+  if (config.source === 'upload') {
+    if (!config.uploaded_rows) {
+      throw Object.assign(new Error('Nenhum arquivo foi anexado ainda (RF-15).'), { status: 400 });
+    }
+    return { range: config.uploaded_filename, values: config.uploaded_rows };
+  }
+
+  return fetchSheetValues(config.sheet_id, config.sheet_range);
+}
+
+module.exports = { fetchSheetValues, extractSheetId, resolveSheetRows };
