@@ -16,6 +16,18 @@ async function upsertUser({ name, email, password, role }) {
   console.log(`Usuário pronto: ${email} (${role})`);
 }
 
+// RF-04 — contatos de exemplo para exercitar o broadcast em ambiente local.
+// O cadastro real de opt-in pelo próprio WhatsApp (RF-10) chega no Módulo D,
+// na Sprint 04 — até lá, esta é a única forma de povoar a lista de envio.
+async function upsertContact({ phone, name }) {
+  await pool.query(
+    `INSERT INTO contacts (phone, name, opt_in)
+     VALUES ($1, $2, true)
+     ON CONFLICT (phone) DO NOTHING`,
+    [phone, name]
+  );
+}
+
 async function seed() {
   await upsertUser({
     name: 'Coordenação Pedagógica',
@@ -30,6 +42,10 @@ async function seed() {
     password: process.env.SEED_EQUIPE_PASSWORD || 'EduBot@2026',
     role: 'equipe_escola',
   });
+
+  await upsertContact({ phone: '+5511999990001', name: 'Aluno de teste 1' });
+  await upsertContact({ phone: '+5511999990002', name: 'Responsável de teste 2' });
+  console.log('Contatos de teste prontos (RF-04).');
 
   await pool.end();
 }
