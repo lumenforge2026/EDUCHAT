@@ -53,9 +53,10 @@ Contas criadas pelo seed (definidas em `.env`):
 | GET | `/api/support-requests` | Fila de solicitações encaminhadas a atendente humano (RF-09) | Sim |
 | GET | `/api/metrics/overview` | Métricas de envio e de interação consolidadas (RF-12, RF-13) | Sim |
 | GET | `/api/metrics/dispatch-logs` | Log de envio de todas as oportunidades, mais recentes primeiro (RF-12) | Sim |
-| GET | `/api/integrations/sheets/config` | Planilha e intervalo configurados (RF-15) | Sim |
-| PUT | `/api/integrations/sheets/config` | Configura a planilha e o intervalo (RF-15) | Sim (Administrador) |
-| GET | `/api/integrations/sheets/preview` | Prova de conceito: lê a planilha configurada (RF-14) | Sim |
+| GET | `/api/integrations/sheets/config` | Planilha configurada — link ou arquivo (RF-15) | Sim |
+| PUT | `/api/integrations/sheets/config` | Configura o link/intervalo — modo "link" (RF-15) | Sim (Administrador) |
+| POST | `/api/integrations/sheets/upload` | Anexa um CSV — modo "arquivo" (RF-15) | Sim (Administrador) |
+| GET | `/api/integrations/sheets/preview` | Prova de conceito: lê a planilha configurada, nos dois modos (RF-14) | Sim |
 | GET | `/api/students?search=&grade=&situation=&schoolYear=` | Dashboard escolar consolidado, com busca e filtros (RF-18) | Sim |
 | GET | `/api/students/summary` | Indicadores agregados da turma (RF-19) | Sim |
 | GET | `/api/students/sync-status` | Data/hora da última sincronização e último resultado (RF-17) | Sim |
@@ -118,22 +119,45 @@ não há dado fictício aqui, diferente do dashboard do frontend na Sprint 02.
 
 ### Integração com Google Sheets (RF-14, RF-15)
 
-Prova de conceito com uma API key (sem OAuth/service account), pensada
-para uma planilha compartilhada como "qualquer pessoa com o link pode
-visualizar":
+Dois modos, alternáveis a qualquer momento, para escolas que preferem não
+compartilhar o link da planilha com o time técnico:
 
-1. O Administrador configura a planilha em
-   `PUT /api/integrations/sheets/config` (`{ sheetId, sheetRange }`).
+**Modo "link"** — prova de conceito com uma API key (sem OAuth/service
+account), para uma planilha compartilhada como "qualquer pessoa com o
+link pode visualizar":
+
+1. O Administrador cola o link (ou o ID isolado, por compatibilidade) em
+   `PUT /api/integrations/sheets/config` (`{ sheetUrl, sheetRange }`) — o
+   ID é extraído do link automaticamente (RF-15).
 2. `GET /api/integrations/sheets/preview` lê a planilha configurada via
    `GOOGLE_SHEETS_API_KEY` e devolve as linhas cruas.
 3. Sem `GOOGLE_SHEETS_API_KEY` configurada, ou sem planilha configurada, o
    endpoint responde 400 com uma mensagem clara — não há tentativa de
    simular uma leitura que não aconteceu de fato.
 
+**Modo "arquivo"** — a escola exporta a planilha (Arquivo > Fazer
+download > Valores separados por vírgula) e anexa o CSV:
+
+1. `POST /api/integrations/sheets/upload` (multipart, campo `file`,
+   até 5 MB, só `.csv`) — o arquivo fica em memória, nunca é gravado em
+   disco, e as linhas parseadas ficam salvas em `sheet_config.uploaded_rows`.
+2. A partir daí, `GET /api/integrations/sheets/preview` devolve o conteúdo
+   do arquivo anexado, sem chamar a API do Google.
+3. Enviar um novo arquivo substitui o anterior; alternar de volta para o
+   modo "link" é só configurar `sheetUrl` de novo.
+
+Optamos por CSV em vez de `.xlsx` porque a biblioteca mais usada para ler
+Excel no Node (`xlsx`/SheetJS) tem vulnerabilidades conhecidas de alta
+severidade sem correção publicada no npm — um risco real num endpoint que
+recebe arquivo de upload não confiável. CSV é uma exportação de um clique
+tanto no Google Sheets quanto no Excel.
+
 ### Sincronização e dashboard escolar (RF-16 a RF-19)
 
-Layout esperado da planilha, a partir do intervalo configurado em Módulo F
-(ex.: `sheetRange = "Alunos!A2:D"`, sem cabeçalho no intervalo lido):
+`resolveSheetRows()` unifica os dois modos de configuração acima — a
+sincronização abaixo funciona igual esteja a escola no modo "link" ou
+"arquivo". Layout esperado das linhas (a partir do intervalo configurado,
+no modo link, ou das colunas do CSV, no modo arquivo — sem cabeçalho):
 
 | Coluna A | Coluna B | Coluna C | Coluna D |
 |---|---|---|---|
@@ -142,7 +166,9 @@ Layout esperado da planilha, a partir do intervalo configurado em Módulo F
 - **RF-16**: além de `POST /api/students/sync` (disparo manual), o
   `server.js` roda `syncStudentsFromSheet()` a cada `SYNC_INTERVAL_MINUTES`
   minutos (padrão 15; `0` desativa) — a mesma rotina dos dois casos, então
-  o comportamento é idêntico esperando o intervalo ou forçando agora.
+  o comportamento é idêntico esperando o intervalo ou forçando agora. No
+  modo "arquivo", cada execução simplesmente reprocessa o último CSV
+  enviado — só muda de fato quando alguém anexa um arquivo novo.
 - **RF-17**: cada tentativa (sucesso ou falha) grava uma linha em
   `sync_runs`; `GET /api/students/sync-status` devolve a data/hora da
   última sincronização **bem-sucedida** e o resultado da última tentativa,
@@ -156,7 +182,8 @@ Layout esperado da planilha, a partir do intervalo configurado em Módulo F
   composta que a planilha da escola não fornece.
 
 A arquitetura é somente leitura em relação à planilha (seção 5.7): o
-EduBot lê e apresenta, nunca escreve de volta no Google Sheets.
+EduBot lê e apresenta, nunca escreve de volta no Google Sheets (nem no
+CSV anexado).
 
 ## Como testar (critérios de aceite, seção 9 do Documento de Escopo)
 
@@ -220,12 +247,16 @@ curl -s http://localhost:4000/api/support-requests -H "Authorization: Bearer <TO
 # métricas consolidadas (RF-12, RF-13)
 curl -s http://localhost:4000/api/metrics/overview -H "Authorization: Bearer <TOKEN>"
 
-# configura a planilha do Google Sheets (RF-15)
+# configura a planilha por link (RF-15, modo "link")
 curl -s -X PUT http://localhost:4000/api/integrations/sheets/config \
   -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
-  -d '{"sheetId":"<ID_DA_PLANILHA>","sheetRange":"Alunos!A2:F"}'
+  -d '{"sheetUrl":"https://docs.google.com/spreadsheets/d/<ID_DA_PLANILHA>/edit","sheetRange":"Alunos!A2:F"}'
 
-# prévia da leitura da planilha (RF-14) — 400 se GOOGLE_SHEETS_API_KEY não estiver configurada
+# anexa um CSV em vez do link (RF-15, modo "arquivo")
+curl -s -X POST http://localhost:4000/api/integrations/sheets/upload \
+  -H "Authorization: Bearer <TOKEN>" -F "file=@alunos.csv"
+
+# prévia da leitura da planilha (RF-14) — 400 se nada estiver configurado
 curl -s http://localhost:4000/api/integrations/sheets/preview -H "Authorization: Bearer <TOKEN>"
 
 # dashboard escolar (RF-18) — dados de seed, sem depender de planilha real
@@ -257,6 +288,7 @@ src/
       003_chatbot_consentimento.sql  # consent_logs, support_requests (RF-07 a RF-11)
       004_metricas_integracoes.sql   # chat_interactions, sheet_config (RF-12 a RF-15)
       005_dashboard_escolar.sql      # students, sync_runs (RF-16 a RF-19)
+      006_sheet_upload.sql           # colunas de source/upload em sheet_config (RF-15)
   middleware/
     auth.js                  # requireAuth / requireRole (RF-20, RF-21)
     webhookAuth.js            # requireWebhookSecret (RNF-08)
@@ -267,7 +299,7 @@ src/
     webhooks.controller.js       # callback de status do N8N
     whatsapp.controller.js       # fluxo conversacional (RF-07 a RF-11) + log de interações (RF-13)
     metrics.controller.js        # métricas de envio e interação (RF-12, RF-13)
-    integrations.controller.js   # configuração e leitura do Google Sheets (RF-14, RF-15)
+    integrations.controller.js   # configuração (link/arquivo) e leitura do Google Sheets (RF-14, RF-15)
     students.controller.js       # dashboard escolar, resumo e status de sync (RF-16 a RF-19)
   routes/
     auth.routes.js
@@ -275,12 +307,13 @@ src/
     webhooks.routes.js
     support.routes.js            # fila de atendimento humano (RF-09)
     metrics.routes.js
-    integrations.routes.js
+    integrations.routes.js       # inclui o upload multipart (multer, em memória)
     students.routes.js
   utils/
     jwt.js
     classifyStatus.js        # RF-03
     n8n.js                   # dispara o webhook do N8N e monta a mensagem (RF-04, RF-05)
-    googleSheets.js          # leitura via API key (RF-14)
-    studentsSync.js          # lê a planilha e faz upsert em students (RF-16, RF-17)
+    googleSheets.js          # extrai o ID do link, lê via API key e unifica com o modo arquivo (RF-14, RF-15)
+    csvParser.js             # parseia o CSV anexado (RF-15)
+    studentsSync.js          # lê a planilha (nos dois modos) e faz upsert em students (RF-16, RF-17)
 ```
