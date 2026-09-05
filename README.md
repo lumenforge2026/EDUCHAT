@@ -1,14 +1,16 @@
-# EduBot — Backend (Sprint 05)
+# EduBot — Backend (Sprint 06)
 
-API do Módulo Web de Gestão de Oportunidades, dos módulos da extensão
-mobile (Notificação em Massa, Chatbot FAQ e Gestão de Consentimento) e,
-a partir desta Sprint, de Métricas/Auditoria e da integração com o Google
-Sheets. Node.js + Express + PostgreSQL.
+API completa do EduBot: gestão de oportunidades, extensão mobile
+(broadcast, chatbot FAQ, consentimento), métricas/auditoria, integração
+com Google Sheets e, a partir desta Sprint, sincronização periódica e
+dashboard escolar. Node.js + Express + PostgreSQL.
 
-Escopo acumulado: Módulo A (RF-01 a RF-03), Módulo I (RF-20, RF-21),
-Módulo B (RF-04 a RF-06), Módulo C (RF-07 a RF-09), Módulo D (RF-10, RF-11)
-e, a partir desta Sprint, Módulo E — Métricas e Auditoria (RF-12, RF-13) e
-Módulo F — Integração Google Sheets (RF-14, RF-15).
+Escopo acumulado — todos os módulos da EAP (seção 5.1 do Documento de
+Escopo): A (RF-01 a RF-03), B (RF-04 a RF-06), C (RF-07 a RF-09), D
+(RF-10, RF-11), E (RF-12, RF-13), F (RF-14, RF-15), I (RF-20, RF-21) e,
+a partir desta Sprint, G — Sincronização de Dados (RF-16, RF-17) e
+H — Dashboard Escolar (RF-18, RF-19). Esta é a última Sprint do
+Documento de Escopo (seção 7.7).
 
 ## Pré-requisitos
 
@@ -21,8 +23,8 @@ Módulo F — Integração Google Sheets (RF-14, RF-15).
 ```bash
 cp .env.example .env        # ajuste as credenciais se necessário
 npm install
-npm run migrate             # cria as tabelas (users, opportunities, logs, contacts, dispatch_logs, consent_logs, support_requests, chat_interactions, sheet_config)
-npm run seed                # cria as contas de acesso e contatos de teste
+npm run migrate             # cria as tabelas (users, opportunities, logs, contacts, dispatch_logs, consent_logs, support_requests, chat_interactions, sheet_config, students, sync_runs)
+npm run seed                # cria as contas de acesso, contatos e alunos de teste
 npm run dev                 # inicia em http://localhost:4000
 ```
 
@@ -54,6 +56,10 @@ Contas criadas pelo seed (definidas em `.env`):
 | GET | `/api/integrations/sheets/config` | Planilha e intervalo configurados (RF-15) | Sim |
 | PUT | `/api/integrations/sheets/config` | Configura a planilha e o intervalo (RF-15) | Sim (Administrador) |
 | GET | `/api/integrations/sheets/preview` | Prova de conceito: lê a planilha configurada (RF-14) | Sim |
+| GET | `/api/students?search=&grade=&situation=&schoolYear=` | Dashboard escolar consolidado, com busca e filtros (RF-18) | Sim |
+| GET | `/api/students/summary` | Indicadores agregados da turma (RF-19) | Sim |
+| GET | `/api/students/sync-status` | Data/hora da última sincronização e último resultado (RF-17) | Sim |
+| POST | `/api/students/sync` | Dispara a sincronização imediatamente (RF-16) | Sim (Administrador) |
 
 `status` retornado por oportunidade: `Rascunho`, `Ativa` ou `Encerrada`,
 calculado automaticamente a partir de `deadline` (RF-03).
@@ -124,8 +130,33 @@ visualizar":
    endpoint responde 400 com uma mensagem clara — não há tentativa de
    simular uma leitura que não aconteceu de fato.
 
-A sincronização periódica e o dashboard escolar consolidado (Módulos G e
-H) ficam para a Sprint 06.
+### Sincronização e dashboard escolar (RF-16 a RF-19)
+
+Layout esperado da planilha, a partir do intervalo configurado em Módulo F
+(ex.: `sheetRange = "Alunos!A2:D"`, sem cabeçalho no intervalo lido):
+
+| Coluna A | Coluna B | Coluna C | Coluna D |
+|---|---|---|---|
+| Nome | Série | Frequência (%) | Situação (`Regular`/`Atenção`/`Risco`) |
+
+- **RF-16**: além de `POST /api/students/sync` (disparo manual), o
+  `server.js` roda `syncStudentsFromSheet()` a cada `SYNC_INTERVAL_MINUTES`
+  minutos (padrão 15; `0` desativa) — a mesma rotina dos dois casos, então
+  o comportamento é idêntico esperando o intervalo ou forçando agora.
+- **RF-17**: cada tentativa (sucesso ou falha) grava uma linha em
+  `sync_runs`; `GET /api/students/sync-status` devolve a data/hora da
+  última sincronização **bem-sucedida** e o resultado da última tentativa,
+  seja qual for.
+- **RF-18**: `students` é upsertada por `(nome, série, ano letivo)` — sem
+  um ID estável vindo da planilha, o nome é a chave natural; uma limitação
+  aceitável para o escopo do MVP com uma única escola parceira.
+- **RF-19**: `GET /api/students/summary` calcula frequência média e um
+  "desempenho geral" definido como o percentual de alunos em situação
+  `Regular` — um indicador simples e verificável, sem inventar uma nota
+  composta que a planilha da escola não fornece.
+
+A arquitetura é somente leitura em relação à planilha (seção 5.7): o
+EduBot lê e apresenta, nunca escreve de volta no Google Sheets.
 
 ## Como testar (critérios de aceite, seção 9 do Documento de Escopo)
 
@@ -196,6 +227,18 @@ curl -s -X PUT http://localhost:4000/api/integrations/sheets/config \
 
 # prévia da leitura da planilha (RF-14) — 400 se GOOGLE_SHEETS_API_KEY não estiver configurada
 curl -s http://localhost:4000/api/integrations/sheets/preview -H "Authorization: Bearer <TOKEN>"
+
+# dashboard escolar (RF-18) — dados de seed, sem depender de planilha real
+curl -s "http://localhost:4000/api/students?situation=Risco" -H "Authorization: Bearer <TOKEN>"
+
+# indicadores agregados (RF-19)
+curl -s http://localhost:4000/api/students/summary -H "Authorization: Bearer <TOKEN>"
+
+# status da sincronização (RF-17)
+curl -s http://localhost:4000/api/students/sync-status -H "Authorization: Bearer <TOKEN>"
+
+# dispara a sincronização agora (RF-16) — falha de forma controlada sem planilha configurada
+curl -s -X POST http://localhost:4000/api/students/sync -H "Authorization: Bearer <TOKEN>"
 ```
 
 ## Estrutura
@@ -207,12 +250,13 @@ src/
   db/
     pool.js                  # pool de conexão pg
     migrate.js               # aplica migrations/*.sql
-    seed.js                  # cria contas (RF-20) e contatos de teste (RF-04)
+    seed.js                  # cria contas (RF-20), contatos (RF-04) e alunos (RF-18) de teste
     migrations/
       001_init.sql           # users, opportunities, logs
       002_broadcast.sql      # contacts, dispatch_logs (RF-04 a RF-06)
       003_chatbot_consentimento.sql  # consent_logs, support_requests (RF-07 a RF-11)
       004_metricas_integracoes.sql   # chat_interactions, sheet_config (RF-12 a RF-15)
+      005_dashboard_escolar.sql      # students, sync_runs (RF-16 a RF-19)
   middleware/
     auth.js                  # requireAuth / requireRole (RF-20, RF-21)
     webhookAuth.js            # requireWebhookSecret (RNF-08)
@@ -224,6 +268,7 @@ src/
     whatsapp.controller.js       # fluxo conversacional (RF-07 a RF-11) + log de interações (RF-13)
     metrics.controller.js        # métricas de envio e interação (RF-12, RF-13)
     integrations.controller.js   # configuração e leitura do Google Sheets (RF-14, RF-15)
+    students.controller.js       # dashboard escolar, resumo e status de sync (RF-16 a RF-19)
   routes/
     auth.routes.js
     opportunities.routes.js
@@ -231,9 +276,11 @@ src/
     support.routes.js            # fila de atendimento humano (RF-09)
     metrics.routes.js
     integrations.routes.js
+    students.routes.js
   utils/
     jwt.js
     classifyStatus.js        # RF-03
     n8n.js                   # dispara o webhook do N8N e monta a mensagem (RF-04, RF-05)
     googleSheets.js          # leitura via API key (RF-14)
+    studentsSync.js          # lê a planilha e faz upsert em students (RF-16, RF-17)
 ```

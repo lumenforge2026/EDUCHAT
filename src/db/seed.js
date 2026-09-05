@@ -28,6 +28,18 @@ async function upsertContact({ phone, name }) {
   );
 }
 
+// RF-18 — alunos de exemplo para exercitar o dashboard escolar sem
+// depender de uma planilha real configurada. A sincronização de verdade
+// (Módulo G) sobrescreve estes registros na primeira execução bem-sucedida.
+async function upsertStudent({ name, grade, attendance, situation }) {
+  await pool.query(
+    `INSERT INTO students (name, grade, attendance, situation, school_year, synced_at)
+     VALUES ($1, $2, $3, $4, EXTRACT(YEAR FROM now()), now())
+     ON CONFLICT (name, grade, school_year) DO NOTHING`,
+    [name, grade, attendance, situation]
+  );
+}
+
 async function seed() {
   await upsertUser({
     name: 'Coordenação Pedagógica',
@@ -46,6 +58,11 @@ async function seed() {
   await upsertContact({ phone: '+5511999990001', name: 'Aluno de teste 1' });
   await upsertContact({ phone: '+5511999990002', name: 'Responsável de teste 2' });
   console.log('Contatos de teste prontos (RF-04).');
+
+  await upsertStudent({ name: 'Ana Souza', grade: '9º Ano A', attendance: 92, situation: 'Regular' });
+  await upsertStudent({ name: 'Bruno Lima', grade: '9º Ano A', attendance: 68, situation: 'Atenção' });
+  await upsertStudent({ name: 'Carla Dias', grade: '1º Ano B', attendance: 45, situation: 'Risco' });
+  console.log('Alunos de teste prontos (RF-18).');
 
   await pool.end();
 }
