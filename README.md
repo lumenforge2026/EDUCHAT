@@ -1,12 +1,14 @@
-# EduBot — Backend (Sprint 04)
+# EduBot — Backend (Sprint 05)
 
-API do Módulo Web de Gestão de Oportunidades e dos módulos da extensão
-mobile (Notificação em Massa, Chatbot FAQ e Gestão de Consentimento).
-Node.js + Express + PostgreSQL.
+API do Módulo Web de Gestão de Oportunidades, dos módulos da extensão
+mobile (Notificação em Massa, Chatbot FAQ e Gestão de Consentimento) e,
+a partir desta Sprint, de Métricas/Auditoria e da integração com o Google
+Sheets. Node.js + Express + PostgreSQL.
 
 Escopo acumulado: Módulo A (RF-01 a RF-03), Módulo I (RF-20, RF-21),
-Módulo B (RF-04 a RF-06) e, a partir desta Sprint, Módulo C — Chatbot FAQ
-(RF-07 a RF-09) e Módulo D — Gestão de Consentimento (RF-10, RF-11).
+Módulo B (RF-04 a RF-06), Módulo C (RF-07 a RF-09), Módulo D (RF-10, RF-11)
+e, a partir desta Sprint, Módulo E — Métricas e Auditoria (RF-12, RF-13) e
+Módulo F — Integração Google Sheets (RF-14, RF-15).
 
 ## Pré-requisitos
 
@@ -19,7 +21,7 @@ Módulo B (RF-04 a RF-06) e, a partir desta Sprint, Módulo C — Chatbot FAQ
 ```bash
 cp .env.example .env        # ajuste as credenciais se necessário
 npm install
-npm run migrate             # cria as tabelas (users, opportunities, logs, contacts, dispatch_logs, consent_logs, support_requests)
+npm run migrate             # cria as tabelas (users, opportunities, logs, contacts, dispatch_logs, consent_logs, support_requests, chat_interactions, sheet_config)
 npm run seed                # cria as contas de acesso e contatos de teste
 npm run dev                 # inicia em http://localhost:4000
 ```
@@ -47,6 +49,11 @@ Contas criadas pelo seed (definidas em `.env`):
 | POST | `/api/webhooks/n8n/dispatch-status` | Callback do N8N com o status de entrega (RF-06) | Segredo compartilhado (`X-Webhook-Secret`) |
 | POST | `/api/webhooks/whatsapp/inbound` | Mensagem recebida no WhatsApp (RF-07 a RF-11) | Segredo compartilhado (`X-Webhook-Secret`) |
 | GET | `/api/support-requests` | Fila de solicitações encaminhadas a atendente humano (RF-09) | Sim |
+| GET | `/api/metrics/overview` | Métricas de envio e de interação consolidadas (RF-12, RF-13) | Sim |
+| GET | `/api/metrics/dispatch-logs` | Log de envio de todas as oportunidades, mais recentes primeiro (RF-12) | Sim |
+| GET | `/api/integrations/sheets/config` | Planilha e intervalo configurados (RF-15) | Sim |
+| PUT | `/api/integrations/sheets/config` | Configura a planilha e o intervalo (RF-15) | Sim (Administrador) |
+| GET | `/api/integrations/sheets/preview` | Prova de conceito: lê a planilha configurada (RF-14) | Sim |
 
 `status` retornado por oportunidade: `Rascunho`, `Ativa` ou `Encerrada`,
 calculado automaticamente a partir de `deadline` (RF-03).
@@ -85,6 +92,40 @@ com o texto que o workflow deve reenviar ao contato:
 
 Um contato que ainda não deu opt-in só recebe a instrução de enviar
 `ENTRAR` — nenhuma outra funcionalidade do bot roda antes disso (RNF-03).
+
+### Métricas (RF-12, RF-13)
+
+`GET /api/metrics/overview` calcula tudo a partir de dados reais já
+gravados (nada de números fixos):
+
+- **Envio** (`dispatch`): total de notificações, entregues, falhas,
+  pendentes, contatos alcançados e taxa de entrega — de `dispatch_logs`.
+- **Interação** (`chatbot`): total de interações, resolvidas pelo FAQ,
+  encaminhadas a humano, taxa de automação, taxa de resposta (contatos que
+  interagiram ÷ contatos alcançados pelo broadcast), as 5 dúvidas mais
+  frequentes e o ranking de oportunidades por engajamento (perguntas
+  recebidas ÷ contatos que a receberam) — tudo a partir de
+  `chat_interactions` (Sprint 04/05) e `dispatch_logs` (Sprint 03).
+
+Enquanto nenhum disparo ou interação acontecer, os números vêm zerados —
+não há dado fictício aqui, diferente do dashboard do frontend na Sprint 02.
+
+### Integração com Google Sheets (RF-14, RF-15)
+
+Prova de conceito com uma API key (sem OAuth/service account), pensada
+para uma planilha compartilhada como "qualquer pessoa com o link pode
+visualizar":
+
+1. O Administrador configura a planilha em
+   `PUT /api/integrations/sheets/config` (`{ sheetId, sheetRange }`).
+2. `GET /api/integrations/sheets/preview` lê a planilha configurada via
+   `GOOGLE_SHEETS_API_KEY` e devolve as linhas cruas.
+3. Sem `GOOGLE_SHEETS_API_KEY` configurada, ou sem planilha configurada, o
+   endpoint responde 400 com uma mensagem clara — não há tentativa de
+   simular uma leitura que não aconteceu de fato.
+
+A sincronização periódica e o dashboard escolar consolidado (Módulos G e
+H) ficam para a Sprint 06.
 
 ## Como testar (critérios de aceite, seção 9 do Documento de Escopo)
 
@@ -144,6 +185,17 @@ curl -s -X POST http://localhost:4000/api/webhooks/whatsapp/inbound \
 
 # fila de atendimento humano
 curl -s http://localhost:4000/api/support-requests -H "Authorization: Bearer <TOKEN>"
+
+# métricas consolidadas (RF-12, RF-13)
+curl -s http://localhost:4000/api/metrics/overview -H "Authorization: Bearer <TOKEN>"
+
+# configura a planilha do Google Sheets (RF-15)
+curl -s -X PUT http://localhost:4000/api/integrations/sheets/config \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -d '{"sheetId":"<ID_DA_PLANILHA>","sheetRange":"Alunos!A2:F"}'
+
+# prévia da leitura da planilha (RF-14) — 400 se GOOGLE_SHEETS_API_KEY não estiver configurada
+curl -s http://localhost:4000/api/integrations/sheets/preview -H "Authorization: Bearer <TOKEN>"
 ```
 
 ## Estrutura
@@ -160,6 +212,7 @@ src/
       001_init.sql           # users, opportunities, logs
       002_broadcast.sql      # contacts, dispatch_logs (RF-04 a RF-06)
       003_chatbot_consentimento.sql  # consent_logs, support_requests (RF-07 a RF-11)
+      004_metricas_integracoes.sql   # chat_interactions, sheet_config (RF-12 a RF-15)
   middleware/
     auth.js                  # requireAuth / requireRole (RF-20, RF-21)
     webhookAuth.js            # requireWebhookSecret (RNF-08)
@@ -168,14 +221,19 @@ src/
     auth.controller.js
     opportunities.controller.js  # inclui dispatch (RF-04/05) e listDispatchLogs (RF-06)
     webhooks.controller.js       # callback de status do N8N
-    whatsapp.controller.js       # fluxo conversacional (RF-07 a RF-11)
+    whatsapp.controller.js       # fluxo conversacional (RF-07 a RF-11) + log de interações (RF-13)
+    metrics.controller.js        # métricas de envio e interação (RF-12, RF-13)
+    integrations.controller.js   # configuração e leitura do Google Sheets (RF-14, RF-15)
   routes/
     auth.routes.js
     opportunities.routes.js
     webhooks.routes.js
     support.routes.js            # fila de atendimento humano (RF-09)
+    metrics.routes.js
+    integrations.routes.js
   utils/
     jwt.js
     classifyStatus.js        # RF-03
     n8n.js                   # dispara o webhook do N8N e monta a mensagem (RF-04, RF-05)
+    googleSheets.js          # leitura via API key (RF-14)
 ```
