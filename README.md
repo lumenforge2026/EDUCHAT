@@ -9,7 +9,8 @@ N8N/WAHA (ver `documentos/E-Kanban-Sprint02.md`).
 ## Pré-requisitos
 
 - Node.js 18+
-- PostgreSQL 16 (pode ser o do `infra/docker-compose.yml`)
+- PostgreSQL 16, N8N e WAHA — suba os três com `infra/docker-compose.yml`
+  (ver `infra/README.md`)
 
 ## Como rodar
 
