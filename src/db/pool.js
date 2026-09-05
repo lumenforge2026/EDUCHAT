@@ -4,7 +4,7 @@ const { Pool } = require('pg');
 // nuvem) exige SSL em conexões externas. PGSSL=true habilita isso sem
 // afetar o ambiente local (Docker/instalação própria), que continua sem
 // SSL por padrão.
-const ssl = process.env.PGSSL === 'true' ? { rejectUnauthorized: false } : false;
+const ssl = String(process.env.PGSSL).toLowerCase() === 'true' ? { rejectUnauthorized: false } : false;
 
 // DATABASE_URL (Internal/External Database URL do Render) tem prioridade
 // quando definida — evita ter que quebrar a URL em host/porta/usuário/senha
